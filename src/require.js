@@ -17,14 +17,15 @@ function _get(url) {
 }
 
 //internal require
-async function _require(pkg) {
+async function _require(pkg, options) {
 	pkg = pkg.toLowerCase()
 	if (!cache.has(pkg)) {
-		let js = await _get(`https://unpkg.com/${pkg}?time=${Date.now()}`)
+		let js = await _get(`https://unpkg.com/${pkg}}` + (options.cacheBust ? '?time=' + Date.now() : ''))
 		cache.set(pkg, js)
 	}
 	let module = { exports: {} }
-	let code = new Function(['module', 'exports'], cache.get(pkg))
+	let codeStr = cache.get(pkg)
+	let code = new Function(['module', 'exports'], codeStr)
 	code.apply(null, [module, module.exports])
 	return module.exports
 }
@@ -33,10 +34,11 @@ async function _require(pkg) {
  * require module from unpkg.com
  * @function require
  * @param {String|String[]} package module name or modules name
+ * @param {Object} options loading options
  * @return {Promise<Object>|Promise<Object[]>} return promise with module or array of module
  */
-async function require(pkg) {
-	if (!Array.isArray(pkg)) return await _require(pkg)
+async function require(pkg, options) {
+	if (!Array.isArray(pkg)) return await _require(pkg, Object.assign({cacheBust: false}, options || {}))
 	else {
 		let pms = pkg.map(p => _require(p))
 		return await Promise.all(pms)
